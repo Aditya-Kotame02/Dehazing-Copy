@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables (optional) */
+:root {
+  --background: #ffffff; /* Default background color */
+  --text: #1a1a1a; /* Default text color */
+  --primary: #4f46e5; /* Primary color (indigo) */
+  --secondary: #9333ea; /* Secondary color (purple) */
+  --accent: #f59e0b; /* Accent color (amber) */
+  --card: #f9fafb; /* Card background color */
+}
+
+/* Apply default styles */
+html,
+body {
+  @apply bg-background text-text min-h-screen antialiased;
+}
+
+/* Ensure default styles apply properly */
+* {
+  @apply box-border p-0 m-0;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply px-6 py-3 text-white font-medium rounded-lg shadow-md bg-primary hover:bg-primary/90 transition-all duration-300 ease-in-out;
+}
+
+.btn-secondary {
+  @apply px-6 py-3 text-white font-medium rounded-lg shadow-md bg-secondary hover:bg-secondary/90 transition-all duration-300 ease-in-out;
+}
+
+.btn-accent {
+  @apply px-6 py-3 text-white font-medium rounded-lg shadow-md bg-accent hover:bg-accent/90 transition-all duration-300 ease-in-out;
+}
+
+.btn-outline {
+  @apply px-6 py-3 font-medium rounded-lg shadow-md border border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 ease-in-out;
+}
+
+/* Cards */
+.card {
+  @apply bg-card p-6 rounded-lg shadow-md border border-gray-200 transition-all duration-300 ease-in-out;
+}
+
+.card:hover {
+  @apply shadow-lg transform scale-105;
+}
+
+/* Headers */
+h1 {
+  @apply text-4xl font-bold text-primary leading-tight;
+}
+
+h2 {
+  @apply text-3xl font-semibold text-secondary leading-snug;
+}
+
+h3 {
+  @apply text-2xl font-medium text-gray-800 leading-relaxed;
+}
+
+/* Links */
+a {
+  @apply text-primary hover:text-secondary transition-all duration-300 ease-in-out;
+}
+
+/* Forms */
+input,
+textarea,
+select {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 ease-in-out;
+}
+
+/* Alerts */
+.alert-success {
+  @apply bg-green-100 text-green-800 px-4 py-2 rounded-lg;
+}
+
+.alert-error {
+  @apply bg-red-100 text-red-800 px-4 py-2 rounded-lg;
+}
+
+/* Utility classes */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section {
+  @apply py-12;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}

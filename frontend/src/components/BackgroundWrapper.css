@@ -1,0 +1,6 @@
+/* src/components/BackgroundWrapper.css */
+.background {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
