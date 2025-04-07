@@ -26,7 +26,7 @@ const Login = () => {
             localStorage.setItem("token", response.data.token);
 
             // Redirect to dashboard or home page
-            navigate("/Home");
+            navigate("/");
         } catch (err) {
             setError(err.response?.data?.message || "Login failed");
             console.error("Login error:", err);

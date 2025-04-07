@@ -27,7 +27,7 @@ const Register = () => {
             localStorage.setItem("token", response.data.token);
 
             // Redirect to dashboard or home page
-            navigate("/Home");
+            navigate("/Login");
         } catch (err) {
             setError(err.response?.data?.message || "Registration failed");
             console.error("Registration error:", err);

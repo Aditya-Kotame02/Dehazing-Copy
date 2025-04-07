@@ -6,7 +6,7 @@ const path = require("path");
 const WebSocket = require("ws");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("./src/models/User"); // Ensure you have a User model
+const User = require("./src/models/User");
 
 dotenv.config();
 
@@ -45,27 +45,15 @@ const server = app.listen(process.env.PORT || 5000, () => {
     console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
 });
 
-// Example of using JWT_SECRET
-app.post("/api/login", (req, res) => {
-    const token = jwt.sign({ id: "user_id" }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-    });
-    res.json({ token });
-});
-
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
     console.log("New client connected. Total clients:", wss.clients.size);
-
-    // Send current stats to the newly connected client
     ws.send(JSON.stringify({ type: "stats", data: systemStats }));
-
     ws.on("close", () => {
         console.log("Client disconnected. Total clients:", wss.clients.size);
     });
-
     ws.onerror = (error) => {
         console.error("WebSocket error:", error);
     };
@@ -78,29 +66,33 @@ wss.broadcast = function broadcast(data) {
             client.send(data);
         }
     });
-    console.log("Broadcasted system stats to all clients"); // Log only once
+    console.log("Broadcasted system stats to all clients");
 };
 
-// Initialize system stats
+// Initialize system stats with accuracy
 let systemStats = {
     processedImages: 0,
     successfulImages: 0,
     avgProcessingTime: 0,
     successRate: 0,
     psnr: 0,
+    accuracy: 0, // Added accuracy field
+    accuracyCount: 0, // To track number of accuracy measurements for averaging
+    totalAccuracy: 0 // To accumulate accuracy values
 };
 
-// Endpoint to receive metrics
+// Endpoint to receive metrics (updated to include accuracy)
 app.post("/api/metrics", (req, res) => {
-    console.log("Received metrics payload:", req.body); // Log the request payload
-    const { processedImages, successfulImages, avgProcessingTime, psnr } = req.body;
+    console.log("Received metrics payload:", req.body);
+    const { processedImages, successfulImages, avgProcessingTime, psnr, accuracy } = req.body;
 
     // Validate inputs
     if (
         typeof processedImages !== "number" ||
         typeof successfulImages !== "number" ||
         typeof avgProcessingTime !== "number" ||
-        typeof psnr !== "number"
+        typeof psnr !== "number" ||
+        typeof accuracy !== "number"
     ) {
         return res.status(400).json({ message: "Invalid input: All fields must be numbers" });
     }
@@ -113,12 +105,19 @@ app.post("/api/metrics", (req, res) => {
     if (systemStats.processedImages > 0) {
         systemStats.successRate = (systemStats.successfulImages / systemStats.processedImages) * 100;
     } else {
-        systemStats.successRate = 0; // Handle division by zero
+        systemStats.successRate = 0;
     }
 
     // Compute new average processing time
     systemStats.avgProcessingTime = (systemStats.avgProcessingTime + avgProcessingTime) / 2;
     systemStats.psnr = psnr;
+
+    // Update accuracy (calculate running average)
+    if (accuracy) {
+        systemStats.accuracyCount += 1;
+        systemStats.totalAccuracy += accuracy;
+        systemStats.accuracy = systemStats.totalAccuracy / systemStats.accuracyCount;
+    }
 
     console.log("Updated system stats:", systemStats);
 
@@ -133,27 +132,22 @@ app.post("/api/register", async (req, res) => {
     const { username, email, password } = req.body;
 
     try {
-        // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        // Hash the password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create a new user
         const newUser = new User({
             username,
             email,
             password: hashedPassword,
         });
 
-        // Save the user to the database
         await newUser.save();
 
-        // Generate a JWT token
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
             expiresIn: "1h",
         });
@@ -170,19 +164,16 @@ app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Check if user exists
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        // Generate a JWT token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: "1h",
         });
@@ -196,7 +187,7 @@ app.post("/api/login", async (req, res) => {
 
 // Endpoint to fetch system stats
 app.get("/api/system-stats", (req, res) => {
-    console.log("Sending system stats:", systemStats); // Log the response
+    console.log("Sending system stats:", systemStats);
     res.status(200).json(systemStats);
 });
 
@@ -211,7 +202,8 @@ app.get("/api/processing-history", (req, res) => {
 // Endpoint to fetch performance metrics
 app.get("/api/performance-metrics", (req, res) => {
     res.status(200).json({
-        psnr: 30, // Example value
+        psnr: systemStats.psnr,
+        accuracy: systemStats.accuracy
     });
 });
 

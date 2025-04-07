@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Line, Bar } from 'react-chartjs-2';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,7 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js';
+} from "chart.js";
 
 // Register Chart.js components
 ChartJS.register(
@@ -32,77 +32,59 @@ const Dashboard = () => {
     avgProcessingTime: 0,
     successRate: 0,
     psnr: 0,
+    accuracy: 0, // Ensure accuracy is initialized
   });
   const [processingHistory, setProcessingHistory] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [performanceMetrics, setPerformanceMetrics] = useState({
     psnr: 0,
+    accuracy: 0, // Add accuracy to performance metrics
   });
-  const [recentActivity, setRecentActivity] = useState([]);
 
-  // WebSocket connection
+  // WebSocket connection for real-time updates
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:5000");
 
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-    };
-
+    ws.onopen = () => console.log("WebSocket connected");
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       console.log("Received WebSocket message:", message);
 
       if (message.type === "stats") {
-        console.log("Updating system stats with:", message.data);
-        setSystemStats(message.data); // Update system stats in real-time
+        console.log("Updating system stats:", message.data);
+        setSystemStats(prev => ({
+          ...prev,
+          ...message.data,
+          // Ensure accuracy is included in the update
+          accuracy: message.data.accuracy !== undefined ? message.data.accuracy : prev.accuracy
+        }));
       }
     };
+    ws.onclose = () => console.log("WebSocket disconnected");
+    ws.onerror = (error) => console.error("WebSocket error:", error);
 
-    ws.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    // Cleanup WebSocket connection on component unmount
-    return () => {
-      ws.close();
-    };
-  }, []); // Empty dependency array ensures this runs only once
-
-  // Log updated system stats
-  useEffect(() => {
-    console.log("Updated systemStats:", systemStats);
-  }, [systemStats]);
+    return () => ws.close();
+  }, []);
 
   // Fetch initial data from the backend
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching system stats...");
-        const statsResponse = await axios.get('http://localhost:5000/api/system-stats');
-        console.log("System stats response:", statsResponse.data);
+        const [statsRes, historyRes, metricsRes, activityRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/system-stats"),
+          axios.get("http://localhost:5000/api/processing-history"),
+          axios.get("http://localhost:5000/api/performance-metrics"), // Fetch performance metrics
+          axios.get("http://localhost:5000/api/recent-activity"),
+        ]);
 
-        console.log("Fetching processing history...");
-        const historyResponse = await axios.get('http://localhost:5000/api/processing-history');
-        console.log("Processing history response:", historyResponse.data);
-
-        console.log("Fetching performance metrics...");
-        const metricsResponse = await axios.get('http://localhost:5000/api/performance-metrics');
-        console.log("Performance metrics response:", metricsResponse.data);
-
-        console.log("Fetching recent activity...");
-        const activityResponse = await axios.get('http://localhost:5000/api/recent-activity');
-        console.log("Recent activity response:", activityResponse.data);
-
-        // Update state with fetched data
-        setSystemStats(statsResponse.data);
-        setProcessingHistory(historyResponse.data);
-        setPerformanceMetrics(metricsResponse.data);
-        setRecentActivity(activityResponse.data);
+        setSystemStats(statsRes.data);
+        setProcessingHistory(historyRes.data);
+        setPerformanceMetrics(metricsRes.data); // Store performance metrics
+        setRecentActivity(activityRes.data);
+        
+        console.log("Fetched performance metrics:", metricsRes.data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       }
     };
 
@@ -114,76 +96,169 @@ const Dashboard = () => {
     labels: processingHistory.map((entry) => entry.date),
     datasets: [
       {
-        label: 'Processed Images',
+        label: "Processed Images",
         data: processingHistory.map((entry) => entry.count),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: "rgba(79, 70, 229, 1)",
+        backgroundColor: "rgba(79, 70, 229, 0.1)",
+        borderWidth: 2,
+        tension: 0.1,
+        fill: true,
       },
     ],
   };
 
-  // Chart data for PSNR
-  const psnrChartData = {
-    labels: ['PSNR'],
+  // Chart data for performance metrics (now includes accuracy)
+  const performanceChartData = {
+    labels: ["PSNR", "Accuracy"],
     datasets: [
       {
-        label: 'PSNR',
-        data: [systemStats.psnr],
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        borderColor: 'rgba(153, 102, 255, 1)',
+        label: "Performance Metrics",
+        data: [
+          performanceMetrics.psnr ?? 0,
+          performanceMetrics.accuracy ?? 0
+        ],
+        backgroundColor: [
+          "rgba(99, 102, 241, 0.8)",
+          "rgba(236, 72, 153, 0.8)"
+        ],
+        borderColor: [
+          "rgba(79, 70, 229, 1)",
+          "rgba(219, 39, 119, 1)"
+        ],
+        borderWidth: 1,
       },
     ],
   };
 
+  // UI Cards
+  const statsCards = [
+    { 
+      title: "Processed Images", 
+      value: systemStats.processedImages,
+      color: "bg-indigo-100 text-indigo-800"
+    },
+    { 
+      title: "Successful Images", 
+      value: systemStats.successfulImages,
+      color: "bg-green-100 text-green-800"
+    },
+    {
+      title: "Avg. Processing Time",
+      value:
+        systemStats.avgProcessingTime !== undefined
+          ? `${systemStats.avgProcessingTime.toFixed(2)} ms`
+          : "N/A",
+      color: "bg-blue-100 text-blue-800"
+    },
+    {
+      title: "Success Rate",
+      value:
+        systemStats.successRate !== undefined
+          ? `${systemStats.successRate.toFixed(2)}%`
+          : "N/A",
+      color: "bg-purple-100 text-purple-800"
+    },
+    {
+      title: "Accuracy",
+      value:
+        systemStats.accuracy !== undefined
+          ? `${systemStats.accuracy.toFixed(2)}%`
+          : "N/A",
+      color: "bg-pink-100 text-pink-800"
+    },
+  ];
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">System Dashboard</h1>
-
-      {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold">Processed Images</h2>
-          <p className="text-2xl">{systemStats.processedImages}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold">Successful Images</h2>
-          <p className="text-2xl">{systemStats.successfulImages}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold">Avg. Processing Time</h2>
-          <p className="text-2xl">{systemStats.avgProcessingTime.toFixed(2)} ms</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold">Success Rate</h2>
-          <p className="text-2xl">{systemStats.successRate.toFixed(2)}%</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">System Dashboard</h1>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {statsCards.map((stat, index) => (
+          <div 
+            key={index} 
+            className={`p-6 rounded-lg shadow-sm border ${stat.color} transition-all hover:shadow-md`}
+          >
+            <h2 className="text-sm font-medium uppercase tracking-wider">{stat.title}</h2>
+            <p className="text-2xl font-bold mt-2">{stat.value ?? "N/A"}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Processing History Chart */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Processing History (Last 7 Days)</h2>
-        <Line data={historyChartData} />
-      </div>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Processing History Chart */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Processing History (Last 7 Days)
+          </h2>
+          <div className="h-64">
+            <Line 
+              data={historyChartData} 
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
 
-      {/* Performance Metrics */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Performance Metrics</h2>
-        <Bar data={psnrChartData} />
-      </div>
+        {/* Recent Activity */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
+          <ul className="space-y-3">
+            {recentActivity.map((activity, index) => (
+              <li 
+                key={index} 
+                className="p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <p className="text-sm text-gray-700">{activity.description}</p>
+                <span className="text-xs text-gray-500">{activity.timestamp}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-        <ul>
-          {recentActivity.map((activity, index) => (
-            <li key={index} className="mb-2">
-              {activity.description} - <span className="text-gray-500">{activity.timestamp}</span>
-            </li>
-          ))}
-        </ul>
+        {/* Performance Metrics */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Performance Metrics</h2>
+          <div className="h-64">
+            <Bar 
+              data={performanceChartData} 
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100 // Since accuracy is a percentage
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Dashboard;
+
+
+
