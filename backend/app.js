@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./src/config/db");
 const imageRoutes = require("./src/routes/imageRoutes");
+const dehazeRoutes = require("./src/routes/dehazeRoutes"); // <-- Add this line
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ connectDB();
 
 // Routes
 app.use("/api/image", imageRoutes);
+app.use("/api/dehaze", dehazeRoutes); // <-- Add this line
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

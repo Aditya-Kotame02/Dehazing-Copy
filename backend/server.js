@@ -7,6 +7,7 @@ const WebSocket = require("ws");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("./src/models/User");
+const dehazeRoutes = require("./src/routes/dehazeRoutes");
 
 dotenv.config();
 
@@ -218,6 +219,7 @@ app.get("/api/recent-activity", (req, res) => {
 // Add image upload routes
 const imageRoutes = require("./src/routes/imageRoutes")(wss);
 app.use("/api/image", imageRoutes);
+app.use("/api/dehaze", dehazeRoutes); // after image routes
 
 // Serve Frontend Build
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
