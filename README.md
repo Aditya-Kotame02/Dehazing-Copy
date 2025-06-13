@@ -28,6 +28,9 @@ This project presents an AI/ML-powered web platform that performs **real-time im
 - **Vaishnavi Jedhe**	Research, Dataset Collection, Data Preprocessing
 - **Samruddhi Latore**	Frontend Developer, UI/UX Design, Documentation
 
+## Mentor :
+**Dr. Aparna S. Hambarde**
+
 ## 📈 System Metrics Monitored
 
 ```json
