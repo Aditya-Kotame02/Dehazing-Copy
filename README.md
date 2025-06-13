@@ -22,6 +22,11 @@ This project presents an AI/ML-powered web platform that performs **real-time im
 - 📡 APIs for real-time disaster data aggregation (Twitter, News, etc.)
 
 ---
+# Developed By : 
+- **Aditya Kotame**	Backend Developer, Deployment Lead, AI/ML Assistance, Team Leader
+- **Vrushali Khade**	AI/ML Model Design, Algorithm Research and Development
+- **Vaishnavi Jedhe**	Research, Dataset Collection, Data Preprocessing
+- **Samruddhi Latore**	Frontend Developer, UI/UX Design, Documentation
 
 ## 📈 System Metrics Monitored
 
